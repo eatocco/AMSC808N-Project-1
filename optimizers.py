@@ -1,3 +1,6 @@
+# Optimizers for use in Lagaris5.ipynb and problem1.ipynb
+# Also author or Gauss-Newton and Levenberg-Marquardt optimizers in problem2.ipynb
+
 import torch
 import numpy as np
 
@@ -38,6 +41,7 @@ class Optimizer(ABC):
 
             self.gradnorm = torch.linalg.norm(self.grad)
             self.gradnormvals[self.it] = self.gradnorm
+            self.lossvals[self.it] = self.lossfun(self.res)
 
     @abstractmethod
     def _linesearch(self, a, d) -> float:
@@ -291,6 +295,7 @@ class LBFGS(Optimizer):
             self.aux = self.eta*torch.dot(g, -g)
             a, k = self._linesearch(1, -g, self.batch)
             if k == self.kmax:
+                self.aux = self.eta*torch.dot(self.grad, -self.grad)
                 a, _ = self._linesearch(1, -self.grad, self.batch)
             return -a*g
 
@@ -358,7 +363,7 @@ class GaussNewton(Optimizer):
         Jtr = torch.transpose(self.Jac, 0, 1)
         B = torch.matmul(Jtr, self.Jac)
         b = torch.matmul(Jtr, self.res)
-        p = torch.linalg.lstsq(B, -b)
+        p = torch.linalg.lstsq(B, -b)[0]
         self.aux = self.eta * torch.tensordot(self.grad, p)
         if (self.alpha):
             return self._step(self.alpha, p)
